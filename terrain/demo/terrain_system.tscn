@@ -1,0 +1,24 @@
+[gd_scene load_steps=5 format=3 uid="uid://cjvaiu0uw2u03"]
+
+[ext_resource type="Script" uid="uid://dtxlo85sjory0" path="res://terrain/runtime/TerrainSystem.gd" id="1_47k3h"]
+[ext_resource type="Script" uid="uid://b8v33xe8j28me" path="res://terrain/settings/TerrainSettings.gd" id="2_vlbqx"]
+[ext_resource type="Script" uid="uid://b16g86vulyntk" path="res://terrain/runtime/FlyCamera.gd" id="3_vlbqx"]
+
+[sub_resource type="Resource" id="Resource_f32kt"]
+script = ExtResource("2_vlbqx")
+noise_frequency = 0.005
+metadata/_custom_type_script = "uid://b8v33xe8j28me"
+
+[node name="TerrainSystem" type="Node3D"]
+script = ExtResource("1_47k3h")
+settings = SubResource("Resource_f32kt")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+shadow_enabled = true
+
+[node name="Chunks" type="Node3D" parent="."]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 30, 40, 30)
+script = ExtResource("3_vlbqx")
