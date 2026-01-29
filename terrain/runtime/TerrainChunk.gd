@@ -51,8 +51,8 @@ func generate() -> void:
 		for x in range(verts_per_side):
 			var idx = z * verts_per_side + x
 			
-			var wx := float(x) * spacing
-			var wz := float(z) * spacing
+			var wx := origin_x + float(x) * spacing
+			var wz := origin_z + float(z) * spacing
 			var wy := hp.get_height(wx, wz)
 			
 			# Store vertices in LOCAL space so moving the chunk node moves the mesh cleanly
