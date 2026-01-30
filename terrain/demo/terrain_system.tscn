@@ -9,6 +9,7 @@ script = ExtResource("2_vlbqx")
 height_scale = 10.0
 noise_frequency = 0.005
 octaves = 3
+flat_shading = true
 terracing_enabled = true
 terracing_step = 1.0
 metadata/_custom_type_script = "uid://b8v33xe8j28me"
@@ -17,7 +18,7 @@ metadata/_custom_type_script = "uid://b8v33xe8j28me"
 script = ExtResource("1_47k3h")
 settings = SubResource("Resource_f32kt")
 target = NodePath("Camera3D")
-radius = 2
+radius = 8
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
