@@ -7,7 +7,7 @@ class_name TerrainSettings
 
 @export_group("Mesh")
 @export var verts_per_side: int = 64
-@export var vertexspacing: float = 1.0
+@export var vertex_spacing: float = 1.0
 
 @export_group("Noise")
 @export var noise_frequency: float = 0.01
@@ -20,4 +20,4 @@ class_name TerrainSettings
 
 @export_group("LOD")
 @export var lod_count: int = 4
-@export var lod_distances: PackedFloat32Array = [0.0, 80.0, 160.0, 320.0]
+@export var lod_chunk_distances: PackedInt32Array = [0 , 2, 4 , 8] # in chunks

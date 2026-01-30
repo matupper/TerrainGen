@@ -84,7 +84,7 @@ func _build_smooth_mesh(
 		var v2 := vertices[i2]
 		
 		# Cross so normals are up
-		var face_normal := (v2 - v0).cross(v1 - v0)
+		var face_normal := (v2 - v0).cross(v1 - v0).normalized()
 		
 		normals[i0] += face_normal
 		normals[i1] += face_normal
@@ -212,7 +212,7 @@ func generate() -> void:
 	var hp := HeightProvider.new(settings)
 	
 	var verts_per_side := settings.verts_per_side
-	var spacing := settings.vertexspacing
+	var spacing := settings.vertex_spacing
 	var chunk_world_size := float(verts_per_side - 1) * spacing
 	
 	# Chunk origin in world space

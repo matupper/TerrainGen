@@ -19,19 +19,18 @@ var _required_set: Dictionary = {}	# coord -> true (latest required coords)
 var _desired_lod: Dictionary = {} # coord -> int
 
 func _get_lod_for_coord(coord: Vector2i) -> int:
-	var chunk_world_size := float(settings.verts_per_side - 1) * settings.vertexspacing
-	
-	# Chunk center in world spcae
-	var cx = (float(coord.x) + 0.5) * chunk_world_size
-	var cz = (float(coord.y) + 0.5) * chunk_world_size
-	
-	var tpos := target.global_position
-	var dist := Vector2(tpos.x - cx, tpos.z - cz).length()
-	
+	# Distance in chunk coordinates from the current center chunk
+	var dx = abs(coord.x - _center_chunk.x)
+	var dz = abs(coord.y - _center_chunk.y)
+
+	# Chebyshev distance (square rings): 0 at center, 1 at immediate neighbors, etc.
+	var chunk_dist := maxi(dx, dz)
+
 	var lod := 0
-	for i in range(settings.lod_distances.size()):
-		if dist >= settings.lod_distances[i]:
+	for i in range(settings.lod_chunk_distances.size()):
+		if chunk_dist >= settings.lod_chunk_distances[i]:
 			lod = i
+
 	return clampi(lod, 0, settings.lod_count - 1)
 
 func _get_required_coords(center: Vector2i, radius: int) -> Array[Vector2i]:
@@ -50,6 +49,15 @@ func _sort_pending_by_distance(center: Vector2i) -> void:
 		var db = abs(b.x - center.x) + abs(b.y - center.y)
 		return da < db
 	)
+
+func _queue_chunk_rebuild(coord: Vector2i, desired_lod: int) -> void:
+	_desired_lod[coord] = desired_lod
+	
+	if _pending_set.has(coord):
+		return
+	
+	_pending.append(coord)
+	_pending_set[coord] = true
 
 func _update_chunks(center: Vector2i) -> void:
 	var required := _get_required_coords(center, radius)
@@ -73,8 +81,14 @@ func _update_chunks(center: Vector2i) -> void:
 		chunk.queue_free()
 	
 	# 2) Enqueue chunks that are missing (not generating here)
-	for coord in required:
+	for coord in _required_set.keys():
 		if _chunks.has(coord):
+			var desired: int = _desired_lod.get(coord, 0)
+			var chunk: TerrainChunk = _chunks[coord]
+			
+			if chunk.lod != desired:
+				#Mark it for rebuild
+				_queue_chunk_rebuild(coord, desired)
 			continue
 		if _pending_set.has(coord):
 			continue
@@ -87,7 +101,7 @@ func _update_chunks(center: Vector2i) -> void:
 
 
 func _world_to_chunk_coord(world_pos: Vector3) -> Vector2i:
-	var chunk_world_size = float(settings.verts_per_side - 1) * settings.vertexspacing
+	var chunk_world_size = float(settings.verts_per_side - 1) * settings.vertex_spacing
 	return Vector2i(
 		floori(world_pos.x / chunk_world_size),
 		floori(world_pos.z / chunk_world_size)
@@ -115,8 +129,14 @@ func _generate_pending_budgeted() -> void:
 		if not _required_set.has(coord):
 			continue
 		
-		# If it already got created, skip it
+		var desired: int = _desired_lod.get(coord, 0)
 		if _chunks.has(coord):
+			# Rebuild existing chunk at new LOD
+			var chunk: TerrainChunk = _chunks[coord]
+			if chunk.lod != desired:
+				chunk.lod = desired
+				chunk.generate()
+				generated += 1
 			continue
 		
 		var chunk := TerrainChunk.new()
