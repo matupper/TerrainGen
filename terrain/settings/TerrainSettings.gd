@@ -17,3 +17,7 @@ class_name TerrainSettings
 @export var flat_shading: bool = false
 @export var terracing_enabled: bool = false
 @export var terracing_step: float = 2.0
+
+@export_group("LOD")
+@export var lod_count: int = 4
+@export var lod_distances: PackedFloat32Array = [0.0, 80.0, 160.0, 320.0]

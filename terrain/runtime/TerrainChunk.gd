@@ -3,8 +3,12 @@ class_name TerrainChunk
 
 var settings: TerrainSettings
 var chunk_coord: Vector2i = Vector2i.ZERO
+var lod: int = 0
 
 var _mesh_instance: MeshInstance3D
+
+func _lod_step() -> int:
+	return 1 << lod
 
 func _ready() -> void:
 	# Create the MeshInstance once
@@ -23,34 +27,40 @@ func _build_smooth_mesh(
 	var uvs := PackedVector2Array()
 	var indices := PackedInt32Array()
 	
+	var step := _lod_step()
+	var grid_verts := int((verts_per_side - 1) / step) + 1
+	
 	# Presize helps performance and avoids mistakes
-	vertices.resize(verts_per_side * verts_per_side)
-	normals.resize(verts_per_side * verts_per_side)
-	uvs.resize(verts_per_side * verts_per_side)
+	vertices.resize(grid_verts * grid_verts)
+	normals.resize(grid_verts * grid_verts)
+	uvs.resize(grid_verts * grid_verts)
 	
 	# Build vertices and UVs
-	for z in range(verts_per_side):
-		for x in range(verts_per_side):
-			var idx = z * verts_per_side + x
+	for z in range(grid_verts):
+		for x in range(grid_verts):
+			var idx = z * grid_verts + x
 			
-			var wx := origin_x + float(x) * spacing
-			var wz := origin_z + float(z) * spacing
+			var lx := float(x * step) * spacing
+			var lz := float(z * step) * spacing
+			
+			var wx := origin_x + lx
+			var wz := origin_z + lz
 			var wy := hp.get_height(wx, wz)
 			
 			# Store vertices in LOCAL space so moving the chunk node moves the mesh cleanly
-			vertices[idx] = Vector3(float(x) * spacing, wy, float(z) * spacing)
+			vertices[idx] = Vector3(lx, wy, lz)
 			
 			uvs[idx] = Vector2(
-				float(x) / float(verts_per_side - 1),
-				float(z) / float(verts_per_side - 1)
+				float(x) / float(grid_verts - 1),
+				float(z) / float(grid_verts - 1)
 			)
 	
 	# Indices
-	for z in range(verts_per_side - 1):
-		for x in range(verts_per_side - 1):
-			var a = z * verts_per_side + x
+	for z in range(grid_verts - 1):
+		for x in range(grid_verts - 1):
+			var a = z * grid_verts + x
 			var b = a + 1
-			var c = a + verts_per_side
+			var c = a + grid_verts
 			var d = c + 1
 
 			# Triangle 1: a, b, c
@@ -107,15 +117,18 @@ func _build_flat_mesh(
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
 	
+	var step := _lod_step()
+	var grid_verts := int((verts_per_side - 1) / step) + 1
+	
 	# Push 6 vertices per quad (2 Tris)
 	# This avoids indices and guarantees flat shading
-	for z in range(verts_per_side - 1):
-		for x in range(verts_per_side - 1):
+	for z in range(grid_verts - 1):
+		for x in range(grid_verts - 1):
 			#Local corners (x,z) in chunk space
-			var lx0 := float(x) * spacing
-			var lz0 := float(z) * spacing
-			var lx1 := float(x + 1) * spacing
-			var lz1 := float(z + 1) * spacing
+			var lx0 := float(x * step) * spacing
+			var lz0 := float(z * step) * spacing
+			var lx1 := float((x + 1) * step) * spacing
+			var lz1 := float((z + 1) * step) * spacing
 			
 			# World corners for sampling
 			var wx0 := origin_x + lx0
@@ -136,10 +149,10 @@ func _build_flat_mesh(
 			var d := Vector3(lx1, yd, lz1)
 			
 			# UVs (simple 0..1 across hunk is good enough for now)
-			var u0 := float(x) / float(verts_per_side - 1)
-			var v0 := float(z) / float(verts_per_side - 1)
-			var u1 := float(x + 1) / float(verts_per_side - 1)
-			var v1 := float(z + 1) / float(verts_per_side - 1)
+			var u0 := float(x) / float(grid_verts - 1)
+			var v0 := float(z) / float(grid_verts - 1)
+			var u1 := float(x + 1) / float(grid_verts - 1)
+			var v1 := float(z + 1) / float(grid_verts - 1)
 			
 			var uv_a := Vector2(u0, v0)
 			var uv_b := Vector2(u1, v0)
@@ -181,9 +194,10 @@ func _build_flat_mesh(
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
 
-func setup(p_settings: TerrainSettings, p_chunk_coord: Vector2i) -> void:
+func setup(p_settings: TerrainSettings, p_chunk_coord: Vector2i, p_lod: int) -> void:
 	settings = p_settings
 	chunk_coord = p_chunk_coord
+	lod = p_lod
 
 func generate() -> void:
 	if settings == null:

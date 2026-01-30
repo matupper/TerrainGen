@@ -16,6 +16,24 @@ var _pending: Array[Vector2i] = []	# coords waiting to be generated
 var _pending_set: Dictionary = {}	# coords -> true (prevents duplicates)
 var _required_set: Dictionary = {}	# coord -> true (latest required coords)
 
+var _desired_lod: Dictionary = {} # coord -> int
+
+func _get_lod_for_coord(coord: Vector2i) -> int:
+	var chunk_world_size := float(settings.verts_per_side - 1) * settings.vertexspacing
+	
+	# Chunk center in world spcae
+	var cx = (float(coord.x) + 0.5) * chunk_world_size
+	var cz = (float(coord.y) + 0.5) * chunk_world_size
+	
+	var tpos := target.global_position
+	var dist := Vector2(tpos.x - cx, tpos.z - cz).length()
+	
+	var lod := 0
+	for i in range(settings.lod_distances.size()):
+		if dist >= settings.lod_distances[i]:
+			lod = i
+	return clampi(lod, 0, settings.lod_count - 1)
+
 func _get_required_coords(center: Vector2i, radius: int) -> Array[Vector2i]:
 	var coords: Array[Vector2i] = []
 	coords.resize(0)
@@ -38,8 +56,10 @@ func _update_chunks(center: Vector2i) -> void:
 	
 	# Build the latest required set
 	_required_set.clear()
+	_desired_lod.clear()
 	for coord in required:
 		_required_set[coord] = true
+		_desired_lod[coord] = _get_lod_for_coord(coord)
 	
 	# 1) Remove chunks that are no longer required
 	var to_remove: Array[Vector2i] = []
@@ -73,22 +93,15 @@ func _world_to_chunk_coord(world_pos: Vector3) -> Vector2i:
 		floori(world_pos.z / chunk_world_size)
 	)
 
-func _generate_one_chunk() -> void:
-	for c in chunks_root.get_children():
-		c.queue_free()
-	
-	var chunk := TerrainChunk.new()
-	chunks_root.add_child(chunk)
-	
-	chunk.setup(settings, Vector2i(0, 0))
-	chunk.generate()
-
 func _generate_chunk_grid(center: Vector2i, radius: int) -> void:	
 	for cz in range(center.y - radius, center.y + radius + 1):
 		for cx in range(center.x - radius, center.x + radius + 1):
 			var chunk := TerrainChunk.new()
+			var coord = Vector2i(cx, cz)
+			var lod: int = _desired_lod.get(coord, 0)
+			
 			chunks_root.add_child(chunk)
-			chunk.setup(settings, Vector2i (cx, cz))
+			chunk.setup(settings, coord, lod)	
 			chunk.generate()
 
 func _generate_pending_budgeted() -> void:
@@ -107,8 +120,11 @@ func _generate_pending_budgeted() -> void:
 			continue
 		
 		var chunk := TerrainChunk.new()
+		var lod: int = _desired_lod.get(coord, 0)
+
+		
 		chunks_root.add_child(chunk)
-		chunk.setup(settings, coord)
+		chunk.setup(settings, coord, lod)
 		chunk.generate()
 		
 		_chunks[coord] = chunk

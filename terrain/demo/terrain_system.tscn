@@ -7,8 +7,8 @@
 [sub_resource type="Resource" id="Resource_f32kt"]
 script = ExtResource("2_vlbqx")
 height_scale = 10.0
-noise_frequency = 0.005
-octaves = 3
+noise_frequency = 0.001
+octaves = 2
 flat_shading = true
 terracing_enabled = true
 terracing_step = 1.0
